@@ -18,6 +18,8 @@ defineProps(["redirectTo"]);
   align-items: center;
   width: 87px;
   height: 87px;
+  /*width: 4.6%;
+  height: 10.4%;*/
 
   transition: all 0.2s ease-in-out;
 
