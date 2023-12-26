@@ -2,18 +2,19 @@
   <div class="container">
     <p>{{ question }}</p>
     <div class="answers">
-      <Question-answer
+      <button
+        v-for="(answer, index) in answers"
         @click="checkAnswer(answer)"
-        v-for="answer in answers"
         :class="{
-          correct: answer === correctAnswer && answerClicked,
-          wrong:
-            answer === selectedAnswer &&
-            answer !== correctAnswer &&
-            answerClicked,
+          correct:
+            (answer === correctAnswer && selectedAnswer == answer) ||
+            (selectedAnswer !== '' && answer === correctAnswer),
+          wrong: answer !== correctAnswer && selectedAnswer == answer,
+          unselected: selectedAnswer === '',
         }"
-        >{{ answer }}</Question-answer
       >
+        {{ answer }}
+      </button>
     </div>
   </div>
 </template>
@@ -23,22 +24,48 @@ definePageMeta({
   layout: "games",
 });
 
-const { data } = await useFetch("https://opentdb.com/api.php?amount=1");
-const question = data.value.results[0].question;
-const correctAnswer = data.value.results[0].correct_answer;
-const incorrectAnswers = data.value.results[0].incorrect_answers;
-const answers = [correctAnswer, ...incorrectAnswers].sort(
-  () => Math.random() - 0.5
+const { data } = await useFetch("https://opentdb.com/api.php?amount=50").catch(
+  (err) => {
+    console.log(err);
+  }
 );
+let currentQuestion = 0;
+let question = data.value.results[currentQuestion].question;
+let correctAnswer = data.value.results[currentQuestion].correct_answer;
+let incorrectAnswers = data.value.results[currentQuestion].incorrect_answers;
+const answers = ref(
+  [correctAnswer, ...incorrectAnswers].sort(() => Math.random() - 0.5)
+);
+
 console.log(correctAnswer);
 
-let selectedAnswer = null;
-let answerClicked = false;
+let selectedAnswer = ref("");
 
-function checkAnswer(answer) {
-  selectedAnswer = answer;
-  answerClicked = true;
-}
+const checkAnswer = async (answer) => {
+  if (selectedAnswer.value === "") {
+    selectedAnswer.value = answer;
+    if (currentQuestion >= 50) {
+      console.log("first");
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      question =
+        "No more questions for now! You can play again later. Redirecting to home page...";
+      answers.value = [];
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await navigateTo("/");
+      return;
+    }
+    // Wait for 5 seconds after an answer is selected
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    currentQuestion += 1;
+    question = data.value.results[currentQuestion].question;
+    correctAnswer = data.value.results[currentQuestion].correct_answer;
+    incorrectAnswers = data.value.results[currentQuestion].incorrect_answers;
+    answers.value = [correctAnswer, ...incorrectAnswers].sort(
+      () => Math.random() - 0.5
+    );
+    selectedAnswer.value = "";
+  }
+};
 </script>
 
 <style lang="scss" scoped>
@@ -70,10 +97,35 @@ p {
 }
 
 .correct {
-  color: green;
+  background-color: $green;
+  border: 3px solid $green;
+  color: $white;
 }
 
 .wrong {
-  color: red;
+  background-color: $red;
+  border: 3px solid $red;
+  color: $white;
+}
+button {
+  display: inline;
+  font-size: 2rem;
+  color: $default;
+  width: 50%;
+  font-weight: 400;
+  border: 3px solid $default;
+  border-radius: 6px;
+  background-color: $main_black;
+  text-align: center;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    cursor: pointer;
+  }
+}
+
+.unselected:hover {
+  border: 3px solid $hover;
+  color: $hover;
 }
 </style>
